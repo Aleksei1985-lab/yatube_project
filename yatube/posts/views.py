@@ -1,13 +1,15 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from .models import Post, Group
 
 def index(request):
-    context = {
-        'title': 'Это главная страница проекта Yatube'
-    }
-    return render(request, 'posts/index.html', context)
+    posts = Post.objects.order_by('-pub_date')[:10]
+    return render(request, 'posts/index.html', {'posts': posts})
 
 def group_posts(request, slug):
+    group = get_object_or_404(Group, slug=slug)
+    posts = group.posts.order_by('-pub_date')[:10]
     context = {
-        'title': f'Здесь будет информация о группах проекта Yatube {slug}'
+        'group': group,
+        'posts': posts,
     }
     return render(request, 'posts/group_list.html', context)
