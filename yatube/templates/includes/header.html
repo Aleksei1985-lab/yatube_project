@@ -43,10 +43,13 @@
               Изменить пароль
             </a>
           </li>
-          <li class="nav-item"> 
-            <a class="nav-link" href="{% url 'users:logout' %}">
-              Выйти
-            </a>
+          <li class="nav-item">
+            <form method="post" action="{% url 'users:logout' %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="nav-link btn btn-link" style="display: inline;">
+                Выйти
+              </button>
+            </form>
           </li>
           <li class="nav-item">
             <span class="nav-link text-dark">
@@ -55,10 +58,10 @@
           </li>
           {% else %}
           <li class="nav-item">
-            <form method="post" action="{% url 'users:logout' %}">
+            <form method="post" action="{% url 'users:login' %}">
               {% csrf_token %}
               <button type="submit" class="nav-link btn btn-link" style="display: inline;">
-                Выйти
+                Войти
               </button>
             </form>
           </li>

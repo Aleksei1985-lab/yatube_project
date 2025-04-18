@@ -1,49 +1,94 @@
 {% extends "base.html" %}
 {% load static %}
+{% load thumbnail %}
+{% load user_filters %}
 
 {% block title %}Пост {{ post.text|truncatechars:30 }}{% endblock %}
 
 {% block content %}
-<div class="row">
-  <aside class="col-12 col-md-3">
-    <ul class="list-group list-group-flush">
-      <li class="list-group-item">
-        Дата публикации: {{ post.pub_date|date:"d E Y" }}
-      </li>
-      
-      {% if post.group %}
-        <li class="list-group-item">
-          Группа: {{ post.group.title }}
-          <a href="{% url 'posts:group_list' post.group.slug %}">
-            все записи группы
-          </a>
-        </li>
+<div class="container py-5">
+  <div class="row">
+    <div class="col-md-8 mx-auto">
+      <!-- Пост -->
+      <article class="card mb-4">
+        <div class="card-header bg-white">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong>Автор:</strong> 
+              <a href="{% url 'posts:profile' post.author.username %}" class="text-decoration-none">
+                {{ post.author.get_full_name|default:post.author.username }}
+              </a>
+            </div>
+            <span class="text-muted">
+              {{ post.pub_date|date:"d E Y" }}
+            </span>
+          </div>
+        </div>
+        
+        {% if post.image %}
+          {% thumbnail post.image "960x339" crop="center" upscale=True as im %}
+            <img class="card-img-top img-fluid" src="{{ im.url }}" alt="Изображение поста">
+          {% endthumbnail %}
+        {% endif %}
+        
+        <div class="card-body">
+          <p class="card-text">{{ post.text|linebreaksbr }}</p>
+        </div>
+        
+        <div class="card-footer bg-white">
+          {% if user == post.author %}
+            <a href="{% url 'posts:post_edit' post.id %}" class="btn btn-primary btn-sm">
+              Редактировать
+            </a>
+          {% endif %}
+        </div>
+      </article>
+
+      <!-- Форма комментариев -->
+      {% if user.is_authenticated %}
+        <div class="card mb-4">
+          <div class="card-header bg-light">
+            <h5 class="mb-0">Добавить комментарий:</h5>
+          </div>
+          <div class="card-body">
+            <form method="post" action="{% url 'posts:add_comment' post.id %}">
+              {% csrf_token %}
+              <div class="form-group mb-3">
+                {{ form.text }}
+              </div>
+              <button type="submit" class="btn btn-primary">Отправить</button>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <div class="alert alert-info">
+          Чтобы оставить комментарий, <a href="{% url 'login' %}">войдите</a> или <a href="{% url 'users:signup' %}">зарегистрируйтесь</a>.
+        </div>
       {% endif %}
+
+      <!-- Список комментариев -->
+      <h5 class="mt-4 mb-3">Комментарии ({{ comments.count }}):</h5>
       
-      <li class="list-group-item">
-        Автор: {{ post.author.get_full_name }}
-      </li>
-      
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        Всего постов автора: <span>{{ post.author.posts.count }}</span>
-      </li>
-      
-      <li class="list-group-item">
-        <a href="{% url 'posts:profile' post.author.username %}">
-          все посты пользователя
-        </a>
-      </li>
-    </ul>
-  </aside>
-  
-  <article class="col-12 col-md-9">
-    <p>{{ post.text|linebreaksbr }}</p>
-    
-    {% if user == post.author %}
-      <a class="btn btn-primary" href="{% url 'posts:post_edit' post.id %}">
-        редактировать запись
-      </a>
-    {% endif %}
-  </article>
+      {% for comment in comments %}
+        <div class="card mb-3">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="card-title mb-0">
+                <a href="{% url 'posts:profile' comment.author.username %}" class="text-decoration-none">
+                  {{ comment.author.username }}
+                </a>
+              </h6>
+              <small class="text-muted">{{ comment.created|date:"d E Y H:i" }}</small>
+            </div>
+            <p class="card-text">{{ comment.text }}</p>
+          </div>
+        </div>
+      {% empty %}
+        <div class="alert alert-secondary">
+          Пока нет комментариев. Будьте первым!
+        </div>
+      {% endfor %}
+    </div>
+  </div>
 </div>
 {% endblock %}

@@ -1,3 +1,14 @@
+# core/models.py
 from django.db import models
+from django.utils import timezone
 
-# Create your models here.
+class CreatedModel(models.Model):
+    """Абстрактная модель. Добавляет дату создания."""
+    created = models.DateTimeField(
+        'Дата создания',
+        auto_now_add=True,
+        db_index=True
+    )
+    
+    class Meta:
+        abstract = True

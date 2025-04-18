@@ -1,0 +1,13 @@
+<div class="row justify-content-center">
+    <div class="col-md-8 p-5">
+      <div class="card">
+        {% if card_header %}
+          <div class="card-header">{{ card_header }}</div>
+        {% endif %}
+        <div class="card-body">
+          {% if card_body %}<p>{{ card_body }}</p>{% endif %}
+          {% block card_content %}{% endblock %}
+        </div>
+      </div>
+    </div>
+  </div>

@@ -1,9 +1,7 @@
-# posts/tests/test_urls.py
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from posts.models import Group
-
+from posts.models import Post, Group
 
 User = get_user_model()
 
@@ -22,51 +20,39 @@ class PostURLTests(TestCase):
             text='Тестовый пост',
             group=cls.group
         )
-
-    def setUp(self):
-        self.guest_client = Client()
-        self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
-
-    def test_urls_uses_correct_template(self):
-        """URL-адрес использует соответствующий шаблон."""
-        templates_url_names = {
-            reverse('posts:index'): 'posts/index.html',
-            reverse('posts:group_list', kwargs={'slug': 'test-slug'}): 
-                'posts/group_list.html',
-            reverse('posts:profile', kwargs={'username': 'auth'}): 
-                'posts/profile.html',
-            reverse('posts:post_detail', kwargs={'post_id': self.post.id}): 
-                'posts/post_detail.html',
-            reverse('posts:post_edit', kwargs={'post_id': self.post.id}): 
-                'posts/create_post.html',
-            reverse('posts:post_create'): 'posts/create_post.html',
-        }
-        for address, template in templates_url_names.items():
-            with self.subTest(address=address):
-                response = self.authorized_client.get(address)
-                self.assertTemplateUsed(response, template)
+        cls.client = Client()
 
     def test_pages_availability(self):
         """Проверка доступности страниц."""
-        pages = [
+        urls = [
             reverse('posts:index'),
-            reverse('posts:group_list', kwargs={'slug': 'test-slug'}),
-            reverse('posts:profile', kwargs={'username': 'auth'}),
+            reverse('posts:group_list', kwargs={'slug': self.group.slug}),
+            reverse('posts:profile', kwargs={'username': self.user.username}),
             reverse('posts:post_detail', kwargs={'post_id': self.post.id}),
         ]
-        for page in pages:
-            with self.subTest(page=page):
-                response = self.guest_client.get(page)
+        for url in urls:
+            with self.subTest(url=url):
+                response = self.client.get(url)
                 self.assertEqual(response.status_code, 200)
 
-    def test_post_edit_url_redirect_anonymous(self):
-        """Страница редактирования поста перенаправляет анонима."""
-        response = self.guest_client.get(
-            reverse('posts:post_edit', kwargs={'post_id': self.post.id}))
-        self.assertEqual(response.status_code, 302)
-
-    def test_unexisting_page_returns_404(self):
-        """Несуществующая страница возвращает 404."""
-        response = self.guest_client.get('/unexisting_page/')
-        self.assertEqual(response.status_code, 404)
+    def test_create_edit_availability(self):
+        """Проверка доступности страниц создания/редактирования."""
+        urls = [
+            reverse('posts:post_create'),
+            reverse('posts:post_edit', kwargs={'post_id': self.post.id}),
+        ]
+        # Неавторизованный пользователь
+        for url in urls:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 302)
+                self.assertRedirects(
+                    response,
+                    f'/auth/login/?next={url}'
+                )
+        # Авторизованный пользователь
+        self.client.force_login(self.user)
+        for url in urls:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)

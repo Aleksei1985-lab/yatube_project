@@ -1,49 +1,42 @@
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from posts.models import Post, Group
-import uuid
 
 User = get_user_model()
 
 class PostViewsTests(TestCase):
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # Создаём уникального пользователя
-        cls.user = User.objects.create_user(username=f'user_{uuid.uuid4()}', password='password')
-        # Создаём группу
+        cls.user = User.objects.create_user(username='auth')
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='test-slug',
-            description='Описание группы'
+            description='Тестовое описание',
         )
-        # Создаём пост
         cls.post = Post.objects.create(
             author=cls.user,
             text='Тестовый пост',
             group=cls.group
         )
-        # Создаём клиента, авторизированного
-        cls.authorized_client = cls.client
+        cls.client = Client()
+        cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
 
-    def test_post_detail_url_exists(self):
-        url = reverse('posts:post_detail', args=[self.post.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-
-    def test_post_edit_url_exists_for_author(self):
-        url = reverse('posts:post_edit', args=[self.post.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-
-    def test_post_edit_url_redirect_for_anonymous(self):
-        url = reverse('posts:post_edit', args=[self.post.id])
-        response = self.client.get(url)
-        self.assertIn(response.status_code, (301, 302))
-        # Можно проверить редирект на авторизацию
-
-    # Можно добавить тесты на правильность шаблонов и контекстов
-
+    def test_pages_uses_correct_template(self):
+        """URL-адрес использует соответствующий шаблон."""
+        templates = {
+            reverse('posts:index'): 'posts/index.html',
+            reverse('posts:group_list', kwargs={'slug': 'test-slug'}): 'posts/group_list.html',
+            reverse('posts:profile', kwargs={'username': 'auth'}): 'posts/profile.html',
+            reverse('posts:post_detail', kwargs={'post_id': 1}): 'posts/post_detail.html',
+            reverse('posts:post_create'): 'posts/create_post.html',
+            reverse('posts:post_edit', kwargs={'post_id': 1}): 'posts/create_post.html',
+        }
+        
+        for reverse_name, template in templates.items():
+            with self.subTest(reverse_name=reverse_name):
+                response = self.authorized_client.get(reverse_name)
+                self.assertEqual(response.status_code, 200)  # Сначала проверяем успешность запроса
+                self.assertTemplateUsed(response, template)

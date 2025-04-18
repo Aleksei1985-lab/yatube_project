@@ -2,6 +2,7 @@ import pytest
 from django.core.paginator import Page, Paginator
 from django.contrib.auth import get_user_model
 from posts.models import Post, Group
+from django.urls import reverse
 
 pytestmark = pytest.mark.django_db
 
@@ -44,3 +45,15 @@ class TestGroupPaginatorView:
         client.force_login(few_posts_with_group[0].author)  # Авторизуем автора постов
         response = client.get(f'/profile/{few_posts_with_group[0].author.username}/')
         assert response.status_code == 200
+        
+    def test_paginator(self):
+        urls = [
+            reverse('posts:index'),
+            reverse('posts:group_list', kwargs={'slug': 'test-slug'}),
+            reverse('posts:profile', kwargs={'username': 'auth'}),
+        ]
+        for url in urls:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertIn('page_obj', response.context)  # Проверяем наличие page_obj
+                self.assertEqual(len(response.context['page_obj']), 10)
